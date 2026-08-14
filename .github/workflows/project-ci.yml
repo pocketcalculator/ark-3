@@ -157,6 +157,7 @@ jobs:
       - name: Validate all .mmd files
         if: steps.check.outputs.count != '0'
         run: |
+          set -o pipefail
           failed=0
           for f in diagrams/*.mmd; do
             echo "Validating $f"
