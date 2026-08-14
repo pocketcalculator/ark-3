@@ -1,0 +1,24 @@
+title = "ark-3 gitleaks config"
+
+# Extend the default gitleaks rule set; we only add narrowly-scoped allowlist
+# entries for confirmed false positives, never disable a rule.
+[extend]
+useDefault = true
+
+[allowlist]
+  description = "Confirmed false positives — reviewed manually, no real secrets"
+
+  paths = [
+    # Azure built-in role-definition GUIDs (public, non-secret identifiers).
+    '''\.azure/bicep/modules/roleAssignmentsControlRG\.bicep''',
+    # Deployment plan documents the same public GUID, not a credential.
+    '''\.azure/deployment-plan\.md''',
+    # Docs describing the secret-detection pattern table itself
+    # (illustrative examples, not real credentials).
+    '''\.github/skills/secret-handling/SKILL\.md''',
+    '''\.squad/templates/skills/secret-handling/SKILL\.md''',
+    # Non-secret application constant (tag key name), not a credential.
+    '''apps/backend/src/validation/resourceGroup\.ts''',
+    # Explicitly-labeled fake sentinel constant used only in tests.
+    '''device/tests/test_upload_classification\.py''',
+  ]

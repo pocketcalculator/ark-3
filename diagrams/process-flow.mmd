@@ -1,0 +1,57 @@
+sequenceDiagram
+    participant Pi as Pi Zero 2 W<br/>(ark3-capture daemon)
+    participant API as Container App<br/>(Node.js / Fastify)
+    participant KV as Key Vault
+    participant Blob as Blob Storage<br/>(uploads container)
+    participant Table as Table Storage<br/>(approvals table)
+    participant Vision as Azure OpenAI<br/>(gpt-5.4-mini)
+    participant ARM as Azure Resource Manager
+    participant UI as Web UI<br/>(Easy Auth + React SPA)
+
+    Note over Pi: Button pressed
+    Pi->>Pi: Capture JPEG (libcamera)
+    Pi->>Pi: Enqueue to local SQLite
+    Pi->>API: POST /api/device/upload<br/>Bearer token + multipart image<br/>X-Device-Name header
+    API->>API: Rate-limit check (10 req/min per device)
+    API->>KV: Get secret device-token-verifier (UAMI)
+    KV-->>API: Hex SHA-256 hash
+    API->>API: Constant-time token verification
+    API->>Blob: Upload JPEG (UAMI — Storage Blob Data Contributor)
+    API->>Table: Create record status=ocr_pending (UAMI — Storage Table Data Contributor)
+    API-->>Pi: 202 Accepted { uploadId, status: ocr_pending }
+
+    Note over API: OCR pipeline (async, fire-and-forget)
+    API->>Blob: Download image (UAMI)
+    API->>Vision: POST chat/completions (UAMI — Cognitive Services OpenAI User)
+    Vision-->>API: { resourceGroupName, rawText, uncertainty }
+    API->>API: Validate RG name grammar (regex)
+    API->>ARM: List/get resource groups — exact lookup in one subscription
+    ARM-->>API: Matched RG metadata (name, tags, canonical ID)
+    API->>API: Allowlist check (ARK3_RG_ALLOWLIST)
+    API->>API: Tag check (ark3-disposable=true)
+    API->>API: Derive canonical ARM ID
+    API->>API: Issue one-time nonce (10-min expiry)
+    API->>Table: Update record status=awaiting_approval + canonicalRgId + nonce
+
+    Note over UI: Operator opens dashboard
+    UI->>API: GET /api/pending (Easy Auth session + approver role)
+    API-->>UI: List of pending items with canonicalRgId, tags, version
+    UI->>API: GET /api/images/:id (Easy Auth session)
+    API->>Blob: Download image (UAMI)
+    API-->>UI: JPEG image bytes
+    Note over UI: Operator reviews source image vs canonical ARM ID
+
+    UI->>API: POST /api/approve/:id<br/>X-CSRF-Token header + { nonce, version }
+    API->>API: Verify Easy Auth session (X-MS-CLIENT-PRINCIPAL)
+    API->>API: Verify approver role claim
+    API->>API: Verify CSRF double-submit cookie
+    API->>API: Check daily deletion cap
+    API->>Table: Transition to deleting, consume nonce (optimistic concurrency)
+
+    Note over API: TOCTOU re-validation against live ARM
+    API->>ARM: Re-fetch RG + allowlist + tag re-check
+    ARM-->>API: Live RG metadata confirmed
+    API->>ARM: DELETE resourceGroups/name (UAMI — custom ark3-RGDeletion role)
+    ARM-->>API: 200/202 Accepted
+    API->>Table: Update record status=deleted
+    API-->>UI: { success: true, canonicalRgId, completedAt }

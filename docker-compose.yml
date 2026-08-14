@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000" # blob
+      - "10001:10001" # queue
+      - "10002:10002" # table
+    environment:
+      - AZURITE_ACCOUNTS=devaccount1:devkey1
+
+  mock-vision:
+    build: ./tools/mock-vision
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+
+  backend:
+    build: ./apps/backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - azurite
+      - mock-vision
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - ARK3_AUTH_BYPASS=true
+      - ARK3_CORS_ORIGIN=http://localhost:3000
+      - ARK3_AZURE_SUBSCRIPTION_ID=00000000-0000-0000-0000-000000000000
+      - ARK3_AZURE_SUBSCRIPTION_DISPLAY_LABEL=Local Dev
+      - ARK3_RG_ALLOWLIST=rg-test-disposable
+      - ARK3_STORAGE_ACCOUNT_NAME=devaccount1
+      - ARK3_OPENAI_ENDPOINT=http://mock-vision:8080
+      - ARK3_OPENAI_DEPLOYMENT_NAME=mock-vision
+      - ARK3_DEVICE_TOKEN_SECRET_NAME=ark3-device-token-hash
+      - ARK3_BLOB_STORAGE_PROVIDER=azurite
+      - AZURITE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devaccount1;AccountKey=devkey1;BlobEndpoint=http://azurite:10000/devaccount1;TableEndpoint=http://azurite:10002/devaccount1;

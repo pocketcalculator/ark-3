@@ -1,0 +1,235 @@
+name: Project CI
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+
+# Least-privilege: read-only by default; jobs that need write access override explicitly
+permissions:
+  contents: read
+
+# Cancel in-flight runs for the same ref on new pushes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Node.js: contracts / backend / web ──────────────────────────────────────
+  node:
+    name: Node — build / typecheck / test / lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all workspaces
+        run: npm run build
+
+      - name: Typecheck all workspaces
+        run: npm run typecheck
+
+      - name: Lint all workspaces
+        run: npm run lint
+
+      - name: Test — contracts (Node built-in runner)
+        run: npm run test --workspace=packages/contracts
+
+      - name: Test + coverage — backend
+        run: npm run test:coverage --workspace=apps/backend
+
+      - name: Test + coverage — web
+        run: npm run test:coverage --workspace=apps/web
+
+  # ── Python: device ──────────────────────────────────────────────────────────
+  python:
+    name: Python — pytest / Ruff / Mypy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            device/requirements.txt
+            device/requirements-dev.txt
+
+      - name: Install device runtime deps
+        run: pip install -r requirements.txt
+        working-directory: device
+
+      - name: Install device dev/test deps
+        run: pip install -r requirements-dev.txt
+        working-directory: device
+
+      - name: Install device package (editable)
+        run: pip install -e .
+        working-directory: device
+
+      - name: Ruff — lint
+        run: ruff check src tests
+        working-directory: device
+
+      - name: Ruff — format check
+        run: ruff format --check src tests
+        working-directory: device
+
+      - name: Mypy — type check
+        run: mypy src
+        working-directory: device
+
+      - name: Pytest
+        run: pytest
+        working-directory: device
+
+  # ── Bicep: lint / format-check / build ──────────────────────────────────────
+  #   No Azure login; no deploy/what-if; purely static analysis.
+  bicep:
+    name: Bicep — lint + build (no Azure login)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bicep CLI via Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az bicep install
+
+      - name: Bicep version
+        run: az bicep version
+
+      - name: Lint main template
+        run: az bicep lint --file .azure/bicep/main.bicep
+
+      - name: Lint all module templates
+        run: |
+          for f in .azure/bicep/modules/*.bicep; do
+            echo "Linting $f"
+            az bicep lint --file "$f"
+          done
+
+      - name: Build / transpile main template (validates ARM output)
+        run: az bicep build --file .azure/bicep/main.bicep --outfile /dev/null
+
+  # ── Mermaid: diagram syntax validation ──────────────────────────────────────
+  #   Runs only if diagrams/*.mmd files exist (docs agent creates them later).
+  #   No committed generated files; bounded artifact output.
+  mermaid:
+    name: Mermaid — diagram syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for .mmd files
+        id: check
+        run: |
+          count=$(find diagrams/ -name '*.mmd' 2>/dev/null | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.count != '0'
+        with:
+          node-version: "20"
+
+      - name: Install Mermaid CLI
+        if: steps.check.outputs.count != '0'
+        # Pinned to a specific major; @mermaid-js/mermaid-cli is the canonical package
+        run: npm install -g @mermaid-js/mermaid-cli@11
+
+      - name: Validate all .mmd files
+        if: steps.check.outputs.count != '0'
+        run: |
+          set -o pipefail
+          failed=0
+          for f in diagrams/*.mmd; do
+            echo "Validating $f"
+            # --quiet suppresses the SVG output; exit code indicates syntax errors
+            if ! mmdc --input "$f" --output /dev/null --quiet 2>&1 | head -20; then
+              failed=1
+            fi
+          done
+          exit $failed
+
+      - name: Skip — no diagrams found yet
+        if: steps.check.outputs.count == '0'
+        run: echo "No .mmd files found in diagrams/; skipping Mermaid validation."
+
+  # ── Security: secrets / audit / tracked-file checks ─────────────────────────
+  security:
+    name: Security — secrets scan / dep audit / env-file check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history required for gitleaks commit-range scan
+          fetch-depth: 0
+
+      - name: Gitleaks — secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Never print detected secret values; gitleaks masks them by default
+          GITLEAKS_NO_BANNER: "true"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Node dependency audit (non-destructive, report only)
+        # --audit-level=high surfaces high/critical only; exits non-zero if found
+        run: npm audit --audit-level=high
+        continue-on-error: true   # informational; do not block on advisories alone
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python dependency audit — pip-audit (non-destructive)
+        run: |
+          pip install pip-audit --quiet
+          pip-audit -r device/requirements.txt --desc on
+        continue-on-error: true   # informational
+
+      - name: Ensure no .env files are tracked
+        # Safety rail: real credential files must never be committed
+        run: |
+          tracked=$(git ls-files | grep -E '(^|/)\.env$' || true)
+          if [ -n "$tracked" ]; then
+            echo "ERROR: .env file(s) tracked in git: $tracked"
+            exit 1
+          fi
+          echo "No .env files tracked."
+
+      - name: Ensure no real Bicep param files are tracked
+        # Only *.bicepparam.example files should be committed; real param files must not be
+        run: |
+          tracked=$(git ls-files | grep -E '\.bicepparam$' | grep -v '\.example$' || true)
+          if [ -n "$tracked" ]; then
+            echo "ERROR: Real Bicep param file(s) tracked (may contain secrets): $tracked"
+            exit 1
+          fi
+          echo "No real .bicepparam files tracked."

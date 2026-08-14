@@ -1,0 +1,69 @@
+graph TB
+    subgraph Untrusted["Untrusted Zone"]
+        PI["Raspberry Pi Zero 2 W<br/>Physical device — can be lost/stolen<br/>Stores raw bearer token"]
+        MODEL["Azure OpenAI Model Output<br/>gpt-5.4-mini — untrusted source<br/>resourceGroupName never directly acted on"]
+        INTERNET["Public Internet<br/>All traffic TLS-encrypted"]
+    end
+
+    subgraph DeviceBoundary["Device Trust Boundary<br/>Bearer token (SHA-256 verified, constant-time)<br/>Rate-limited: 10 req/min per device"]
+        UPLOAD_EP["POST /api/device/upload<br/>Public endpoint (Easy Auth excluded)<br/>Token verification before any action"]
+    end
+
+    subgraph BackendBoundary["Backend Trust Boundary<br/>Server-side validation — model output untrusted"]
+        OCR["OCR Pipeline (async)<br/>1. Grammar regex validation<br/>2. Exact ARM lookup (one subscription)<br/>3. Allowlist check (ARK3_RG_ALLOWLIST)<br/>4. Tag check (ark3-disposable=true)<br/>5. Derive canonical ARM ID<br/>6. Issue one-time nonce"]
+    end
+
+    subgraph WebBoundary["Web / Approval Trust Boundary<br/>Easy Auth v2 — Microsoft Entra ID<br/>Approver role required<br/>CSRF double-submit (SameSite=Strict)<br/>Nonce + version (optimistic concurrency)"]
+        PENDING_EP["GET /api/pending<br/>Easy Auth required"]
+        APPROVE_EP["POST /api/approve/:id<br/>Easy Auth + CSRF + nonce + version<br/>Daily cap enforced"]
+        REJECT_EP["POST /api/reject/:id<br/>Easy Auth + CSRF + nonce + version"]
+        IMAGES_EP["GET /api/images/:id<br/>Easy Auth required<br/>Images never public"]
+    end
+
+    subgraph ARMBoundary["Azure Resource Manager Boundary<br/>UAMI — custom ark3-RGDeletion role<br/>Scoped to sandbox RG only<br/>TOCTOU re-validation before delete"]
+        ARM_OP["resourceGroups/delete<br/>Sandbox RG only<br/>No subscription-wide permissions"]
+    end
+
+    subgraph AzureServices["Azure Services — UAMI access only, no API keys"]
+        KV["Key Vault<br/>device-token-verifier (hash only)<br/>Key Vault Secrets User role"]
+        BLOB["Blob Storage<br/>Private container<br/>Storage Blob Data Contributor"]
+        TABLE["Table Storage<br/>Approval state<br/>Storage Table Data Contributor"]
+        OPENAI["Azure OpenAI<br/>Cognitive Services OpenAI User role<br/>No local auth keys"]
+    end
+
+    subgraph SafetyGates["Safety Gates (all must pass)"]
+        G1["1. RG name grammar valid"]
+        G2["2. Exact ARM lookup — one match"]
+        G3["3. Name on operator allowlist"]
+        G4["4. Tag ark3-disposable=true"]
+        G5["5. TOCTOU re-check at delete time"]
+        G6["6. Daily deletion cap not exceeded"]
+    end
+
+    %% Flows
+    PI -->|"HTTPS + Bearer token"| INTERNET
+    INTERNET -->|"TLS"| UPLOAD_EP
+    UPLOAD_EP -->|"token verified"| OCR
+    OCR -->|"vision request (UAMI)"| OPENAI
+    OPENAI -->|"untrusted output"| MODEL
+    MODEL -->|"validated by"| OCR
+    OCR -->|"write state"| TABLE
+    OCR -->|"store image"| BLOB
+    OCR -->|"read secret"| KV
+
+    PENDING_EP -->|"read state"| TABLE
+    IMAGES_EP -->|"read image"| BLOB
+    APPROVE_EP -->|"all gates must pass"| SafetyGates
+    SafetyGates -->|"if all pass"| ARM_OP
+
+    %% Bypass protection
+    BYPASS["ARK3_AUTH_BYPASS<br/>Refused if:<br/>• NODE_ENV != development<br/>• Managed identity detected"]
+
+    style Untrusted fill:#ffebee,stroke:#ef9a9a
+    style DeviceBoundary fill:#fff8e1,stroke:#ffcc02
+    style BackendBoundary fill:#e8f5e9,stroke:#66bb6a
+    style WebBoundary fill:#e3f2fd,stroke:#42a5f5
+    style ARMBoundary fill:#f3e5f5,stroke:#ab47bc
+    style AzureServices fill:#e0f2f1,stroke:#26a69a
+    style SafetyGates fill:#fce4ec,stroke:#f06292
+    style BYPASS fill:#fff3e0,stroke:#ffa726

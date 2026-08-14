@@ -1,0 +1,44 @@
+# ---------------------------------------------------------------------------
+# Backend URL (required) — no trailing slash
+backend_url: "https://your-container-app.azurecontainerapps.io"
+
+# Device name sent with each upload request
+device_name: "pi-zero-001"
+
+# Queue directory (writable by service user)
+queue_dir: "/var/lib/ark3/queue"
+
+# Token file path (mode 0600, NOT referenced from this config in code;
+# path here is informational only — actual path is compiled into service)
+# token_path: "/etc/ark3/device-token"
+
+# Camera settings
+image_width: 1920
+image_height: 1080
+jpeg_quality: 85
+
+# Queue limits
+max_queue: 50
+max_retries: 10
+
+# Backoff (seconds)
+backoff_base: 1.0
+backoff_cap: 60.0
+
+# Minimum free disk before capture (bytes)
+disk_min_bytes: 52428800   # 50 MB
+
+# Logging level: DEBUG, INFO, WARNING, ERROR
+log_level: "INFO"
+
+# GPIO BCM pin numbers
+button_pin: 17
+green_led_pin: 27
+red_led_pin: 22
+debounce_ms: 50
+
+# Upload HTTP timeout (seconds)
+upload_timeout: 30.0
+
+# Mock mode — set to true ONLY in local development; refuses real credentials
+mock_mode: false

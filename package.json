@@ -1,0 +1,23 @@
+{
+  "name": "ark-3",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/contracts",
+    "apps/backend",
+    "apps/web"
+  ],
+  "scripts": {
+    "lint": "npm run -ws --if-present lint",
+    "typecheck": "npm run -ws --if-present typecheck",
+    "test": "npm run -ws --if-present test",
+    "build": "npm run -ws --if-present build"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "overrides": {
+    "esbuild": "^0.28.2"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "ark3-mock-vision",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal HTTP server returning a canned Azure OpenAI vision response for local dev",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}
