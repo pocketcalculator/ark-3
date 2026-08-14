@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { resolve } from "path";
+import { resolve } from "node:path";
 
 export default defineConfig({
   test: {
@@ -10,12 +10,17 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov"],
       include: ["src/**/*.ts"],
+      exclude: ["src/main.ts", "src/lib/announce.ts"],
+      thresholds: {
+        statements: 80,
+        lines: 80,
+      },
     },
   },
   resolve: {
     alias: {
       "@ark-3/contracts": resolve(
-        __dirname,
+        import.meta.dirname,
         "../../packages/contracts/src/index.ts",
       ),
     },
