@@ -69,7 +69,7 @@ jobs:
             device/requirements-dev.txt
 
       - name: Install device runtime deps
-        run: pip install -r device/requirements.txt
+        run: pip install -r requirements.txt
         working-directory: device
 
       - name: Install device dev/test deps
