@@ -76,6 +76,10 @@ jobs:
         run: pip install -r requirements-dev.txt
         working-directory: device
 
+      - name: Install device package (editable)
+        run: pip install -e .
+        working-directory: device
+
       - name: Ruff — lint
         run: ruff check src tests
         working-directory: device
