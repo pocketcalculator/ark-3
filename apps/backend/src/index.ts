@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import Fastify, { type FastifyInstance, type FastifyError } from "fastify";
 import multipart from "@fastify/multipart";
+import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import pino from "pino";
 import { loadConfig, redactConfigForLog, type Config } from "./config.js";
@@ -67,6 +68,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await app.register(multipart, {
     limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
+  });
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: "1 minute",
   });
 
   // Correlation id + CSRF cookie issuance.
