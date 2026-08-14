@@ -224,10 +224,9 @@ The model returns an `uncertainty` field (0 = most confident, 1 = least). This v
 ## Known limitations
 
 1. **No private networking.** All Azure resources use public endpoints. VNet injection is a production hardening step outside the current scope.
-2. **Shared Key Access on Storage.** `allowSharedKeyAccess: true` is set on the storage account (required for Table Storage SDK with managed identity in the current implementation). This may be disabled after migrating to Azure Tables REST with managed identity if needed.
-3. **No purge protection on Key Vault.** `enablePurgeProtection: false` is set (appropriate for dev). Enable before production use.
-4. **No MFA enforcement.** Easy Auth relies on the Entra tenant's MFA policy. If the tenant does not enforce MFA, an account compromise enables approval.
-5. **Daily deletion cap is not a hard rate limit.** The cap (`ARK3_DAILY_DELETION_CAP`, default 10) is enforced by an atomic counter in Table Storage, not by Azure Policy. It limits accidental over-deletion but is not a security boundary.
-6. **Token hash is cached.** The backend caches the Key Vault secret in memory after first read. Revocation takes effect after Container App restart or next cold start.
-7. **No audit log integrity protection.** Application Insights logs are mutable by anyone with access to the workspace. For production, consider immutable log storage.
-8. **Model output is opaque.** The vision model cannot be audited for its reasoning; only its output is validated.
+2. **No purge protection on Key Vault.** `enablePurgeProtection: false` is set (appropriate for dev). Enable before production use.
+3. **No MFA enforcement.** Easy Auth relies on the Entra tenant's MFA policy. If the tenant does not enforce MFA, an account compromise enables approval.
+4. **Daily deletion cap is not a hard rate limit.** The cap (`ARK3_DAILY_DELETION_CAP`, default 10) is enforced by an atomic counter in Table Storage, not by Azure Policy. It limits accidental over-deletion but is not a security boundary.
+5. **Token hash is cached.** The backend caches the Key Vault secret in memory after first read. Revocation takes effect after Container App restart or next cold start.
+6. **No audit log integrity protection.** Application Insights logs are mutable by anyone with access to the workspace. For production, consider immutable log storage.
+7. **Model output is opaque.** The vision model cannot be audited for its reasoning; only its output is validated.

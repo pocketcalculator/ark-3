@@ -59,7 +59,7 @@ resource openAIAccount 'Microsoft.CognitiveServices/accounts@2024-04-01-preview'
   properties: {
     publicNetworkAccess: 'Enabled' // Required: Container App accesses over internet
     customSubDomainName: accountName // Required for Entra/managed identity auth
-    disableLocalAuth: false // Keep enabled; app uses managed identity via DefaultAzureCredential
+    disableLocalAuth: true // Managed identity authentication only
     networkAcls: {
       defaultAction: 'Allow'
     }

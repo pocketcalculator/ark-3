@@ -38,8 +38,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   properties: {
     accessTier: 'Hot'
     allowBlobPublicAccess: false // No anonymous blob access ever
-    allowSharedKeyAccess: true // Required: Table Storage SDK uses account key under the hood;
-    // disable after migrating to Azure Tables REST with MI if needed
+    allowSharedKeyAccess: false // Managed identity authentication only
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
     publicNetworkAccess: 'Enabled' // Container App accesses over internet (no VNet injection)
