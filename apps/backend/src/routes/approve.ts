@@ -18,7 +18,10 @@ const ApproveBodySchema = z.object({
 export function registerApproveRoute(app: FastifyInstance, deps: AppDeps): void {
   const service = new ApprovalService(deps);
 
-  app.post<{ Params: IdParams }>("/api/approve/:id", async (request, reply) => {
+  app.post<{ Params: IdParams }>(
+    "/api/approve/:id",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const auth = requireAuth(request, deps);
     enforceCsrf(request, deps);
 
@@ -36,5 +39,6 @@ export function registerApproveRoute(app: FastifyInstance, deps: AppDeps): void 
 
     noStore(reply);
     return reply.send(result);
-  });
+    },
+  );
 }

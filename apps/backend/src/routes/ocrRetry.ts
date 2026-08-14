@@ -10,13 +10,17 @@ interface IdParams {
 export function registerOcrRetryRoute(app: FastifyInstance, deps: AppDeps): void {
   const service = new ApprovalService(deps);
 
-  app.post<{ Params: IdParams }>("/api/ocr-retry/:id", async (request, reply) => {
-    const auth = requireAuth(request, deps);
-    enforceCsrf(request, deps);
+  app.post<{ Params: IdParams }>(
+    "/api/ocr-retry/:id",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const auth = requireAuth(request, deps);
+      enforceCsrf(request, deps);
 
-    const result = await service.ocrRetry(request.params.id, auth.correlationId);
+      const result = await service.ocrRetry(request.params.id, auth.correlationId);
 
-    noStore(reply);
-    return reply.send(result);
-  });
+      noStore(reply);
+      return reply.send(result);
+    },
+  );
 }

@@ -21,12 +21,16 @@ function toApprovalItem(record: ApprovalRecord): ApprovalItem {
 }
 
 export function registerPendingRoute(app: FastifyInstance, deps: AppDeps): void {
-  app.get("/api/pending", async (request, reply) => {
-    requireAuth(request, deps);
-    const records = await deps.store.listPending();
-    const items = records.map(toApprovalItem);
-    const body = PendingListSchema.parse({ items, total: items.length });
-    noStore(reply);
-    return reply.send(body);
-  });
+  app.get(
+    "/api/pending",
+    { config: { rateLimit: { max: 100, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      requireAuth(request, deps);
+      const records = await deps.store.listPending();
+      const items = records.map(toApprovalItem);
+      const body = PendingListSchema.parse({ items, total: items.length });
+      noStore(reply);
+      return reply.send(body);
+    },
+  );
 }

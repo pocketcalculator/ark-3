@@ -22,7 +22,7 @@ describe("device upload auth", () => {
       payload,
     });
     expect(res.statusCode).toBe(401);
-    expect(res.headers["x-ratelimit-limit"]).toBe("100");
+    expect(res.headers["x-ratelimit-limit"]).toBe("30");
     await h.app.close();
   });
 

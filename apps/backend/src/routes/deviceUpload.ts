@@ -16,7 +16,10 @@ function singleHeader(request: FastifyRequest, name: string): string | undefined
 }
 
 export function registerDeviceUploadRoute(app: FastifyInstance, deps: AppDeps): void {
-  app.post("/api/device/upload", async (request, reply) => {
+  app.post(
+    "/api/device/upload",
+    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const cid = correlationId(request);
     const deviceName = singleHeader(request, "x-device-name");
     if (deviceName === undefined || deviceName === "") {
@@ -91,7 +94,8 @@ export function registerDeviceUploadRoute(app: FastifyInstance, deps: AppDeps): 
       acceptedAt: timestamp,
     });
     return reply.code(202).send(body);
-  });
+    },
+  );
 }
 
 function sendRateLimited(reply: FastifyReply, cid: string): FastifyReply {

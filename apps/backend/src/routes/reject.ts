@@ -19,7 +19,10 @@ const RejectBodySchema = z.object({
 export function registerRejectRoute(app: FastifyInstance, deps: AppDeps): void {
   const service = new ApprovalService(deps);
 
-  app.post<{ Params: IdParams }>("/api/reject/:id", async (request, reply) => {
+  app.post<{ Params: IdParams }>(
+    "/api/reject/:id",
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const auth = requireAuth(request, deps);
     enforceCsrf(request, deps);
 
@@ -38,5 +41,6 @@ export function registerRejectRoute(app: FastifyInstance, deps: AppDeps): void {
 
     noStore(reply);
     return reply.send(result);
-  });
+    },
+  );
 }
