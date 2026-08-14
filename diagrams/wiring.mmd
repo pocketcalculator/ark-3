@@ -1,0 +1,78 @@
+%%{init: {'theme': 'base'}}%%
+graph TD
+    %% This is a LOGICAL wiring diagram. It is NOT a PCB schematic.
+    %% BCM pin numbers are used for all GPIO references.
+    %% Header pin numbers are shown in parentheses.
+
+    subgraph Power["Power Rail"]
+        VCC["3.3 V — Header Pin 1<br/>(reference, not load)"]
+        GND_MAIN["GND — Header Pin 9<br/>(common ground)"]
+        GND_LED["GND — Header Pin 14<br/>(LED ground)"]
+        GND_LED2["GND — Header Pin 20<br/>(LED ground alt)"]
+    end
+
+    subgraph GPIO["Raspberry Pi Zero 2 W — GPIO (BCM numbering)"]
+        BCM17["BCM 17 — Header Pin 11<br/>Button input<br/>Internal pull-up enabled"]
+        BCM27["BCM 27 — Header Pin 13<br/>Green LED output<br/>3.3 V logic"]
+        BCM22["BCM 22 — Header Pin 15<br/>Red LED output<br/>3.3 V logic"]
+    end
+
+    subgraph Camera["Camera Interface"]
+        CSI["CSI Connector — 22-contact 0.5 mm pitch<br/>Pi Zero 2 W (mini CSI)"]
+        CABLE["Pi Zero camera cable<br/>22-contact/0.5 mm end ↔ 15-contact/1.0 mm end<br/>NOT included with Camera Module 3 — purchase separately"]
+        CAM["Raspberry Pi Camera Module 3<br/>15-contact 1.0 mm pitch connector<br/>Sony IMX708 12 MP autofocus"]
+    end
+
+    subgraph Button["Button Circuit"]
+        BTN["Momentary Push Button<br/>Normally Open<br/>12 mm tactile"]
+        R_PU["10 kΩ Pull-up Resistor<br/>(optional — software pull-up used)"]
+    end
+
+    subgraph GreenLED["Green LED Circuit"]
+        R_G["330 Ω Resistor<br/>(current limiting)"]
+        LED_G["Green LED<br/>Vf ≈ 2.1 V<br/>~3.6 mA"]
+    end
+
+    subgraph RedLED["Red LED Circuit"]
+        R_R["330 Ω Resistor<br/>(current limiting)"]
+        LED_R["Red LED<br/>Vf ≈ 2.0 V<br/>~3.9 mA"]
+    end
+
+    subgraph PowerIn["Power Input"]
+        MICROUSB["Micro-USB PWR IN Port<br/>5 V / 2.5 A minimum"]
+        PBANK["USB Power Bank<br/>≥ 10,000 mAh<br/>Continuous-draw support required"]
+    end
+
+    %% Camera wiring
+    CSI -->|"22-contact/0.5 mm end — follow board silkscreen for orientation"| CABLE
+    CABLE -->|"15-contact/1.0 mm end — follow board silkscreen for orientation"| CAM
+
+    %% Button wiring
+    BCM17 -->|"to terminal A"| BTN
+    BTN -->|"terminal B to GND"| GND_MAIN
+    VCC -.->|"optional external pull-up"| R_PU
+    R_PU -.->|"optional"| BCM17
+
+    %% Green LED wiring
+    BCM27 -->|"GPIO HIGH = LED ON"| R_G
+    R_G --> LED_G
+    LED_G -->|"cathode"| GND_LED
+
+    %% Red LED wiring
+    BCM22 -->|"GPIO HIGH = LED ON"| R_R
+    R_R --> LED_R
+    LED_R -->|"cathode"| GND_LED2
+
+    %% Power
+    PBANK -->|"USB-A to micro-USB cable"| MICROUSB
+
+    %% Warning note
+    WARN["⚠️ All GPIO pins: 3.3 V ONLY<br/>Never connect 5 V to GPIO pins"]
+    SRC["📎 Camera connector specs per official Raspberry Pi sources:<br/>raspberrypi.com/products/camera-module-3/"]
+
+    style SRC fill:#e8f5e9,stroke:#4caf50,color:#000
+
+    style WARN fill:#fff3cd,stroke:#ffc107,color:#000
+    style Power fill:#e8f5e9,stroke:#4caf50
+    style GPIO fill:#e3f2fd,stroke:#2196f3
+    style Camera fill:#f3e5f5,stroke:#9c27b0

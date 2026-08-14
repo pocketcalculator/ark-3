@@ -1,0 +1,74 @@
+graph TB
+    Pi["Raspberry Pi Zero 2 W<br/>ark3-capture daemon<br/>Camera Module 3 + Button + LEDs<br/>Python / gpiozero / picamera2"]
+
+    subgraph Sub["Azure Subscription — non-production (Canada Central)"]
+
+        subgraph ControlRG["rg-ark3-&lt;suffix&gt; — Control Resource Group"]
+
+            UAMI["id-ark3-&lt;suffix&gt;<br/>User-Assigned Managed Identity"]
+
+            subgraph Mon["Monitoring"]
+                LAW["log-ark3-&lt;suffix&gt;<br/>Log Analytics Workspace<br/>PerGB2018 · 90-day retention"]
+                APPI["appi-ark3-&lt;suffix&gt;<br/>Application Insights<br/>Linked to LAW"]
+            end
+
+            ACR["crark3&lt;suffix&gt;<br/>Container Registry<br/>Basic SKU · Admin disabled"]
+
+            subgraph ST["stark3&lt;suffix&gt; — Storage Account<br/>Standard_LRS · StorageV2 · TLS 1.2<br/>No public blob access"]
+                BLOB["Blob Container: uploads<br/>Private · 7-day delete lifecycle"]
+                TABLE["Table: approvals<br/>Approval state records"]
+            end
+
+            KV["kv-ark3-&lt;suffix&gt;<br/>Key Vault<br/>Standard SKU · RBAC mode<br/>Soft-delete 7 days<br/>Secret: device-token-verifier"]
+
+            subgraph OAI["oai-ark3-&lt;suffix&gt; — Azure OpenAI Account<br/>S0 SKU · Public network · Custom subdomain"]
+                DEPLOY["Deployment: ark3-vision<br/>Model: gpt-5.4-mini v2026-03-17<br/>GlobalStandard · 10K TPM<br/>No auto-upgrade · RAI default policy"]
+            end
+
+            subgraph CAE["cae-ark3-&lt;suffix&gt;<br/>Container Apps Environment<br/>Consumption plan"]
+                CA["ca-ark3-&lt;suffix&gt;<br/>Container App<br/>0.5 vCPU / 1 GiB<br/>Replicas: 0–3<br/>External HTTPS ingress<br/>Easy Auth v2 — Entra ID<br/>Excludes: /api/device/upload /api/health"]
+            end
+
+            ROLE_DEF["Custom Role: ark3-RGDeletion-&lt;hash&gt;<br/>Scope: subscription<br/>Actions: resourceGroups/read + /delete only"]
+
+        end
+
+        subgraph SandboxRG["rg-ark3-sandbox-&lt;suffix&gt;<br/>Sandbox Target Resource Group<br/>Tags: ark3-disposable=true · environment=dev"]
+            SANDBOX["Disposable sandbox target<br/>No production resources"]
+        end
+
+    end
+
+    GitHub["GitHub Actions CI<br/>az acr build → az containerapp update"]
+
+    %% Device upload
+    Pi -->|"HTTPS POST /api/device/upload<br/>Bearer token · X-Device-Name"| CA
+
+    %% CI/CD image build
+    GitHub -->|"az acr build · push ark3-api:latest"| ACR
+
+    %% UAMI role assignments — control RG resources
+    UAMI -->|"AcrPull"| ACR
+    UAMI -->|"Storage Blob Data Contributor"| ST
+    UAMI -->|"Storage Table Data Contributor"| ST
+    UAMI -->|"Key Vault Secrets User"| KV
+    UAMI -->|"Cognitive Services OpenAI User"| OAI
+
+    %% UAMI role assignment — sandbox RG
+    UAMI -->|"ark3-RGDeletion (custom role)<br/>scoped to sandbox RG only"| SandboxRG
+
+    %% Container App identity + service connections
+    CA -->|"Assigned UAMI"| UAMI
+    CA -->|"Structured logs"| LAW
+    CA -->|"Custom telemetry + audit events"| APPI
+    CA -->|"Pull app image (AcrPull)"| ACR
+    CA -->|"Read/write images (Blob Data Contributor)"| BLOB
+    CA -->|"Read/write approval records (Table Data Contributor)"| TABLE
+    CA -->|"Read device-token-verifier (KV Secrets User)"| KV
+    CA -->|"POST chat/completions (OpenAI User)"| DEPLOY
+
+    %% ARM deletion
+    CA -->|"DELETE resourceGroup<br/>ARM SDK · custom role<br/>TOCTOU re-validated"| SandboxRG
+
+    %% Custom role relationship
+    ROLE_DEF -->|"assigned via roleAssignmentsSandboxRG.bicep"| SandboxRG
