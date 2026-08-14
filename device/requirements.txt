@@ -1,0 +1,18 @@
+# ark3_device dependencies
+# Pinned for reproducible builds; update with pip-compile on Pi hardware
+
+# Core HTTP client
+requests>=2.31.0,<3.0
+
+# Config parsing
+PyYAML>=6.0,<7.0
+
+# Pi hardware (optional — not installed in mock/dev mode)
+# picamera2 — installed by Raspberry Pi OS apt; not on PyPI in standard form
+# gpiozero — may be pip-installed or from apt
+
+# Hardware extras (install on Pi only):
+# apt: python3-picamera2 python3-gpiozero python3-libcamera
+# pip (Pi only): gpiozero
+
+# Test dependencies (dev only — see constraints below)

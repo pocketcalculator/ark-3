@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>ark-3 — Approval Dashboard</title>
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <header class="site-header" role="banner">
+      <div class="header-inner">
+        <h1 class="site-title">ark-3 Approval Dashboard</h1>
+        <nav aria-label="Account">
+          <ul class="nav-list">
+            <li>
+              <a
+                id="auth-link"
+                href="/.auth/logout"
+                class="auth-link"
+                aria-label="Sign out"
+                >Sign out</a
+              >
+            </li>
+            <li>
+              <a
+                href="/.auth/login/aad"
+                class="auth-link auth-link--signin"
+                aria-label="Sign in with Microsoft"
+                >Sign in</a
+              >
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main-content" tabindex="-1">
+      <div
+        id="app-root"
+        role="region"
+        aria-label="Pending approvals"
+        aria-live="polite"
+        aria-atomic="false"
+      ></div>
+    </main>
+
+    <div
+      id="dialog-overlay"
+      class="dialog-overlay hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+      aria-describedby="dialog-description"
+    ></div>
+
+    <div
+      id="status-announcer"
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+    <div
+      id="alert-announcer"
+      class="sr-only"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    ></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
