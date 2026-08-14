@@ -1,0 +1,38 @@
+[Unit]
+Description=ark3 Capture Daemon
+After=network-online.target
+Wants=network-online.target
+# Wait for Wi-Fi to be available before starting
+After=NetworkManager-wait-online.service
+
+[Service]
+Type=simple
+User=ark3
+Group=ark3
+WorkingDirectory=/var/lib/ark3
+
+ExecStart=/usr/local/bin/ark3-capture --config /etc/ark3/config.yaml
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/ark3/queue /var/run/ark3
+ReadOnlyPaths=/etc/ark3
+PrivateTmp=yes
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+# Allow GPIO access
+SupplementaryGroups=gpio video
+
+# Environment (no secrets here)
+Environment=PYTHONUNBUFFERED=1
+
+# Resource limits
+LimitNOFILE=4096
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target
