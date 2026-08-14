@@ -64,7 +64,7 @@ def atomic_capture(
 
 def _check_disk(path: Path, min_bytes: int) -> None:
     try:
-        st = os.statvfs(path)  # type: ignore[attr-defined]
+        st = os.statvfs(path)
         available = st.f_bavail * st.f_frsize
         if available < min_bytes:
             raise CaptureError(

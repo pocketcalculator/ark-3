@@ -31,7 +31,7 @@ class InstanceLock:
         try:
             import fcntl
 
-            fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)  # type: ignore[attr-defined]
+            fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except ImportError:
             # Windows — no fcntl, single-instance best-effort via PID file
             pass
@@ -51,7 +51,7 @@ class InstanceLock:
             try:
                 import fcntl
 
-                fcntl.flock(self._fd, fcntl.LOCK_UN)  # type: ignore[attr-defined]
+                fcntl.flock(self._fd, fcntl.LOCK_UN)
             except (ImportError, OSError):
                 pass
             os.close(self._fd)
