@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GIF Overlay</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>GIF Overlay</h1>
+      <label class="toggle-row">
+        <span>Show on this tab</span>
+        <input id="enabled" type="checkbox" role="switch" disabled />
+      </label>
+      <label for="gif-choice">Animation</label>
+      <select id="gif-choice" disabled></select>
+      <p id="status" role="status" aria-live="polite">Checking this tab…</p>
+      <p class="hint">The overlay does not block clicks. Reloading the tab removes it.</p>
+    </main>
+    <script src="gif-options.js"></script>
+    <script src="popup-state.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -53,6 +53,7 @@ All infrastructure is deployed to `canadacentral` in a single non-production sub
 | API reference (endpoints, schemas, errors) | [docs/api.md](docs/api.md) |
 | Bicep deployment operator reference | [docs/deployment.md](docs/deployment.md) |
 | Local development, Docker Compose, tests | [docs/development.md](docs/development.md) |
+| Optional Microsoft Edge GIF overlay extension | [apps/edge-overlay-extension/README.md](apps/edge-overlay-extension/README.md) |
 | Bill of materials | [BOM.md](BOM.md) |
 | Process flow diagram | [diagrams/process-flow.mmd](diagrams/process-flow.mmd) |
 | Infrastructure diagram | [diagrams/infrastructure.mmd](diagrams/infrastructure.mmd) |

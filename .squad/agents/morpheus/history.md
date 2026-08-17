@@ -12,3 +12,6 @@ Initial team setup complete.
 
 
 📌 Team update (2026-08-13T16:33:16): Final release cycle: Morpheus completed first independent auth revision and integration pass. Fixed egg-info and .gitignore issues; auth scaffold defect remained (TokenProvider pattern not implemented, Bearer header static). Second-cycle rejection by Switch enforced; locked out due to auth scope mismatch requiring Neo's runtime pattern expertise. Concurrently completed full integration pass: Bicep model defaults corrected (gpt-5.4-mini/2026-03-17), container app env vars aligned with backend Config (ARK3_ prefixes), UAMI client ID wired, new required params added, device mypy cleaned (19 errors fixed). Shared contract scaffold merged: packages/contracts published with 27 passing unit tests, CSRF header-only policy enforced, OCR uncertainty field naming standardized. — orchestrated by Scribe
+
+
+📌 Team update (2026-08-14T16:37:58.586-04:00): Consolidated origin/dev and origin/squad/1-portable-ocr-azure-delete into local main via history-preserving merge commit 2fc6dfd; Node (177/177) and device (56/56) test suites passed. — orchestrated by Morpheus
